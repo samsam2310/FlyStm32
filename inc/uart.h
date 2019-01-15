@@ -10,5 +10,6 @@ typedef enum {
 
 HAL_StatusTypeDef Uart_Init(void);
 HAL_StatusTypeDef Uart_Printf(UartSendMode mode, const char* format, ...);
+char UART_Get_Char();
 
 #endif

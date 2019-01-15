@@ -91,14 +91,15 @@
 #define USARTx_IRQn                      USART1_IRQn
 #define USARTx_IRQHandler                USART1_IRQHandler
 
-/* Size of Transmission buffer */
-#define TXBUFFERSIZE                    (COUNTOF(aTxBuffer) - 1)
-/* Size of Reception buffer */
-#define RXBUFFERSIZE                    TXBUFFERSIZE
-
-/* Exported macro ------------------------------------------------------------*/
-#define COUNTOF(__BUFFER__)   (sizeof(__BUFFER__) / sizeof(*(__BUFFER__)))
-/* Exported functions ------------------------------------------------------- */
+#define PWM_GPIOx GPIOB
+#define PWM_GPIOx_Enable() __HAL_RCC_GPIOB_CLK_ENABLE()
+#define PWM_C1_PIN  GPIO_PIN_4
+#define PWM_C2_PIN  GPIO_PIN_5
+#define PWM_C3_PIN  GPIO_PIN_0
+#define PWM_C4_PIN  GPIO_PIN_1
+#define PWM_TIMx_Enable() __TIM3_CLK_ENABLE()
+#define PWM_TIMx TIM3
+#define PWMx TIM_OCMODE_PWM1
 
 #endif /* __MAIN_H */
 

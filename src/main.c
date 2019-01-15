@@ -40,6 +40,7 @@
 #include "main.h"
 #include "maintimer.h"
 #include "math.h"
+#include "motor.h"
 #include "gy80.h"
 #include "pid.h"
 #include "uart.h"
@@ -56,7 +57,7 @@ static void Error_Handler(void) {
   /* LED2 is slowly blinking (1 sec. period) */
   while(1) {
     BSP_LED_Toggle(LED2);
-    HAL_Delay(1000);
+    HAL_Delay(300);
   }
 }
 
@@ -136,6 +137,7 @@ void Init(void) {
   ret |= Gy80_Init();
   ret |= MainTimer_Init();
   ret |= Uart_Init();
+  Motor_Init();
 
   if (ret != HAL_OK) {
     Error_Handler();
@@ -160,25 +162,85 @@ int main(void) {
   attitude.eInt[2] = 0;
 
   int16_t accele[3], gyro[3], magn[3];
+  // int32_t pressure, temp;
+  int16_t throttle = 0;
+  int16_t enable = 0;
   
   // int16_t magn_max[3], magn_offset[3];
-  
+
+  Uart_Printf(UART_DROPABLE, "Init;        \r\n");
+  Motor_Start();
+  UART_Get_Char(); // init
+  Uart_Printf(UART_DROPABLE, "Start;        \r\n");
+
   int16_t logcnt = 0;
   while(1) {
     if (__HAL_TIM_GET_FLAG(&MainTimer, TIM_FLAG_UPDATE) != RESET) {
       __HAL_TIM_CLEAR_IT(&MainTimer, TIM_IT_UPDATE);
-      BSP_LED_Toggle(LED2);
 
-      HAL_StatusTypeDef ret = HAL_OK;
-      ret |= ADXL345_Read(accele);
-      ret |= L3G4200_Read(gyro);
-      ret |= HMC5883_Read(magn);
-      // HMC5883_Correction(magn, magn_offset, magn_max);
-
-      if (ret != HAL_OK) {
+      if (ADXL345_Read(accele) != HAL_OK) {
         Error_Handler();
       }
+      if (L3G4200_Read(gyro) != HAL_OK) {
+        Error_Handler();
+      }
+      if (HMC5883_Read(magn) != HAL_OK) {
+        Error_Handler();
+      }
+      // if (BMP085_Read(&pressure, &temp) != HAL_OK) {
+      //   Error_Handler();
+      // }
+      // HMC5883_Correction(magn, magn_offset, magn_max);
+
       Attitude_Update(&attitude, accele, gyro, magn);
+      EulerAngle angle;
+      EulerAngle_From_Attitude(&attitude, &angle);
+      int16_t output[4];
+      Motor_Output_From_EulerAngle(&angle, gyro, throttle, output);
+      if (enable) {
+        Motor_Update(output);
+      }
+
+      char command = UART_Get_Char();
+      switch(command) {
+        case '+':
+          throttle += 10;
+          if (throttle > 1000) {
+            throttle = 1000;
+          }
+          break;
+        case '-':
+          throttle -= 10;
+          if (throttle < 0) {
+            throttle = 0;
+          }
+          break;
+        case 'p':
+          Uart_Printf(UART_DROPABLE, "T:%d        \r\n", throttle);
+          break;
+        case 'a':
+          Set_Except_Angle(&angle);
+          enable = 1;
+          throttle = 0;
+          break;
+        case 's':
+          output[0] = output[1] = output[2] = output[3] = 0;
+          Motor_Update(output);
+          enable = 0;
+          throttle = 0;
+          break;
+      }
+
+      if(__HAL_TIM_GET_FLAG(&MainTimer, TIM_FLAG_UPDATE) != RESET) {
+        Uart_Printf(UART_DROPABLE, "TLE;        \r\n");
+      }
+      if(++ logcnt >= 100) {
+        logcnt = 0;
+        // Uart_Printf(UART_DROPABLE, "P[%5.2f]R[%5.2f]Y[%5.2f];G:[%d;%d;%d];        \r",
+        //   angle.pitch, angle.roll, angle.yaw, gyro[0], gyro[1], gyro[2]);
+        Uart_Printf(UART_DROPABLE, "%d;%d;%d;%d;        \r",
+          output[0],output[1],output[2],output[3]);
+      }
     }
   }
 }

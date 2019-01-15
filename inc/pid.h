@@ -18,4 +18,8 @@ typedef struct {
 
 void EulerAngle_From_Attitude(const Attitude* attitude, EulerAngle* angle);
 
+void Set_Except_Angle(const EulerAngle* angle);
+
+void Motor_Output_From_EulerAngle(const EulerAngle* angle, const int16_t* gyro_data, int16_t throttle, int16_t* output);
+
 #endif

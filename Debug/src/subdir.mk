@@ -7,6 +7,7 @@ C_SRCS += \
 ../src/gy80.c \
 ../src/main.c \
 ../src/maintimer.c \
+../src/motor.c \
 ../src/pid.c \
 ../src/stm32l4xx_hal_msp.c \
 ../src/stm32l4xx_it.c \
@@ -18,6 +19,7 @@ OBJS += \
 ./src/gy80.o \
 ./src/main.o \
 ./src/maintimer.o \
+./src/motor.o \
 ./src/pid.o \
 ./src/stm32l4xx_hal_msp.o \
 ./src/stm32l4xx_it.o \
@@ -29,6 +31,7 @@ C_DEPS += \
 ./src/gy80.d \
 ./src/main.d \
 ./src/maintimer.d \
+./src/motor.d \
 ./src/pid.d \
 ./src/stm32l4xx_hal_msp.d \
 ./src/stm32l4xx_it.d \

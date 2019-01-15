@@ -1,5 +1,6 @@
 #include "uart.h"
 
+#include "motor.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -7,6 +8,9 @@
 
 UART_HandleTypeDef UartHandle;
 __IO ITStatus UartReady = SET;
+__IO ITStatus UartReadyRead = SET;
+__IO ITStatus FORCE_STOP = RESET;
+
 
 HAL_StatusTypeDef Uart_Init(void) {
   UartHandle.Instance            = USARTx;
@@ -45,6 +49,17 @@ HAL_StatusTypeDef Uart_Printf(UartSendMode mode, const char* format, ...) {
   return HAL_UART_Transmit_IT(&UartHandle, &buffer, n);
 }
 
+static char uart_read_char;
+char UART_Get_Char() {
+  if (UartReadyRead == RESET)
+    return 0;
+
+  char data = uart_read_char;
+  UartReadyRead = RESET;
+  HAL_UART_Receive_IT(&UartHandle, &uart_read_char, 1);
+  return data;
+}
+
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle) {
   /* Set transmission flag: transfer complete */
   UartReady = SET;
@@ -59,10 +74,12 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle) {
   */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle) {
   /* Set transmission flag: transfer complete */
-  uint8_t b;
-  HAL_UART_Receive_IT(UartHandle, &b, 1);
-  b = 1;
-  // UartReady = SET;
+  UartReadyRead = SET;
+  if (uart_read_char == 32) {
+    FORCE_STOP = SET;
+    Motor_Start();
+    while (1);
+  }
 }
 
 /**
